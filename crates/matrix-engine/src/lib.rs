@@ -121,6 +121,8 @@ impl MatrixEngine {
     }
 }
 
+mod determinism_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;

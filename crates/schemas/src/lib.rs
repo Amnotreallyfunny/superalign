@@ -3,6 +3,8 @@ use lazy_static::lazy_static;
 use std::sync::Arc;
 
 pub mod sample_data;
+pub mod contracts;
+pub mod invariants;
 
 lazy_static! {
     /// Canonical schema for TaxonEntity

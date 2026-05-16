@@ -244,6 +244,8 @@ impl Reconciler {
     }
 }
 
+mod property_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;

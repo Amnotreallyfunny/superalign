@@ -2,6 +2,7 @@ use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use lazy_static::lazy_static;
 use std::sync::Arc;
 
+#[cfg(feature = "parquet")]
 pub mod sample_data;
 pub mod contracts;
 pub mod invariants;

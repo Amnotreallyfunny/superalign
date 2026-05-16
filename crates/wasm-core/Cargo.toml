@@ -14,10 +14,10 @@ js-sys = "0.3"
 web-sys = { version = "0.3", features = ["console", "File", "Blob", "ReadableStream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
-needletail = "0.6"
-uuid = { version = "1.0", features = ["v4"] }
+needletail = { version = "0.6", default-features = false }
+uuid = { version = "1.0", features = ["v4", "js"] }
 chrono = { version = "0.4", features = ["wasmbind"] }
-superalign-schemas = { path = "../schemas" }
+superalign-schemas = { path = "../schemas", default-features = false, features = ["wasm"] }
 arrow = { version = "53.0", default-features = false }
 anyhow = "1.0"
 getrandom = { version = "0.2", features = ["js"] }

@@ -1,0 +1,20 @@
+# SuperAlign CODEOWNERS
+# This file automatically assigns reviewers for PRs.
+
+# Catch-all
+*       @Amnotreallyfunny
+
+# Core Engines
+/crates/core-parser/    @Amnotreallyfunny
+/crates/matrix-engine/  @Amnotreallyfunny
+/crates/taxonomy-engine/ @Amnotreallyfunny
+
+# Schemas (Strict review required)
+/crates/schemas/        @Amnotreallyfunny
+
+# Python Orchestration
+/python/                @Amnotreallyfunny
+
+# Documentation
+/docs/                  @Amnotreallyfunny
+/*.md                   @Amnotreallyfunny

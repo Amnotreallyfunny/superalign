@@ -2318,6 +2318,7 @@ dependencies = [
  "matrix-engine",
  "provenance-core",
  "pyo3",
+ "serde_json",
  "superalign-schemas",
  "taxonomy-engine",
  "tracing",

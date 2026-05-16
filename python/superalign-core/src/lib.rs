@@ -6,9 +6,30 @@ use arrow::ipc::reader::StreamReader;
 use std::io::Cursor;
 use core_parser::FastaParser;
 use taxonomy_engine::{TaxonomyDb, Reconciler};
-use matrix_engine::MatrixEngine;
+use matrix_engine::{MatrixEngine, WritePlan};
 use provenance_core::ProvenanceManager;
 use superalign_schemas::{get_current_schema_version};
+
+#[pyclass]
+#[derive(Clone)]
+struct PyWritePlan {
+    inner: WritePlan,
+}
+
+#[pymethods]
+impl PyWritePlan {
+    fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(&self.inner)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+    }
+
+    #[staticmethod]
+    fn from_json(json: String) -> PyResult<Self> {
+        let inner: WritePlan = serde_json::from_str(&json)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(Self { inner })
+    }
+}
 
 #[pyclass]
 struct PyMatrixEngine {
@@ -24,13 +45,19 @@ impl PyMatrixEngine {
         }
     }
 
-    fn create_matrix(&self, num_taxa: u64, total_length: u64) -> PyResult<()> {
-        self.inner.create_matrix(num_taxa, total_length)
+    fn plan_matrix(&self, taxa: Vec<String>, loci: Vec<(String, u64)>) -> PyWritePlan {
+        PyWritePlan {
+            inner: self.inner.plan_matrix(taxa, loci),
+        }
+    }
+
+    fn initialize_from_plan(&self, plan: PyWritePlan) -> PyResult<()> {
+        self.inner.initialize_from_plan(&plan.inner)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     }
 
-    fn write_chunk(&self, taxon_index: u64, start_pos: u64, data: Vec<u8>) -> PyResult<()> {
-        self.inner.write_chunk(taxon_index, start_pos, &data)
+    fn write_taxon_locus(&self, plan: PyWritePlan, taxon_id: String, locus_name: String, data: Vec<u8>) -> PyResult<()> {
+        self.inner.write_taxon_locus(&plan.inner, &taxon_id, &locus_name, &data)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     }
 }
@@ -146,5 +173,6 @@ fn core(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(reconcile_batch, m)?)?;
     m.add_class::<PyProvenanceManager>()?;
     m.add_class::<PyMatrixEngine>()?;
+    m.add_class::<PyWritePlan>()?;
     Ok(())
 }

@@ -17,7 +17,7 @@ def parse_fasta(path: str, batch_size: int = 1024):
         
         yield entities_table, metadata_table
 
-def reconcile(table: pa.Table, threshold: f64 = 0.8):
+def reconcile(table: pa.Table, threshold: float = 0.8):
     """
     Reconciles a table of TaxonEntity records against the ontology.
     Returns (reconciled_table, provenance_table).
@@ -50,12 +50,26 @@ class ProvenanceManager:
     def export_parquet(self, path: str):
         return self._inner.export_parquet(path)
 
+class WritePlan:
+    def __init__(self, inner):
+        self._inner = inner
+    
+    def to_json(self):
+        return self._inner.to_json()
+    
+    @staticmethod
+    def from_json(json_str: str):
+        return WritePlan(core.PyWritePlan.from_json(json_str))
+
 class MatrixEngine:
     def __init__(self, store_path: str):
         self._inner = core.PyMatrixEngine(store_path)
     
-    def create_matrix(self, num_taxa: int, total_length: int):
-        return self._inner.create_matrix(num_taxa, total_length)
+    def plan_matrix(self, taxa: list[str], loci: list[tuple[str, int]]):
+        return WritePlan(self._inner.plan_matrix(taxa, loci))
     
-    def write_chunk(self, taxon_index: int, start_pos: int, data: bytes):
-        return self._inner.write_chunk(taxon_index, start_pos, data)
+    def initialize_from_plan(self, plan: WritePlan):
+        return self._inner.initialize_from_plan(plan._inner)
+    
+    def write_taxon_locus(self, plan: WritePlan, taxon_id: str, locus_name: str, data: bytes):
+        return self._inner.write_taxon_locus(plan._inner, taxon_id, locus_name, data)

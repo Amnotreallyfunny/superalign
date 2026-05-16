@@ -6,17 +6,14 @@ import {
   GitBranch, 
   Grid3X3, 
   Puzzle, 
-  BarChart3, 
   ShieldCheck,
   Lock,
   Upload,
   Loader2,
   CheckCircle2,
-  ExternalLink,
   Zap,
   Play,
   History,
-  FileCode,
   Dna
 } from 'lucide-react';
 import init, { WasmParser } from './wasm/wasm_core';
@@ -55,7 +52,7 @@ function App() {
     });
   }, []);
 
-  // --- BIO-ENGINEER DEMOS ---
+  // --- BIO-ENGINEER DEMO SUITE ---
   
   const demo_pathogen_surveillance = () => {
     setDemoStatus("Running: SARS-CoV-2 Pathogen Surveillance...");
@@ -69,7 +66,7 @@ function App() {
       setDemoStatus(null);
       setIsParsing(false);
       setActiveTab('Laboratory');
-    }, 1200);
+    }, 800);
   };
 
   const demo_metagenomic_survey = () => {
@@ -85,7 +82,7 @@ function App() {
       setDemoStatus(null);
       setIsParsing(false);
       setActiveTab('Laboratory');
-    }, 1500);
+    }, 1000);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +128,11 @@ function App() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Local Engine</span>
               <div className="h-1.5 w-1.5 rounded-full bg-bio-accent animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]"></div>
             </div>
-            <div className="text-[10px] text-slate-400 mono">WASM_CORE: {isWasmLoaded ? 'ACTIVE' : 'BOOTING'}</div>
+            <div className="text-[10px] text-slate-400 mono italic">WASM_CORE: {isWasmLoaded ? 'READY' : 'BOOTING'}</div>
+          </div>
+          <div className="flex items-center space-x-2 text-emerald-500 text-[10px] font-black uppercase tracking-wider">
+            <Lock size={10} />
+            <span>Processing Locally</span>
           </div>
         </div>
       </aside>
@@ -141,11 +142,11 @@ function App() {
         {/* Top Header */}
         <header className="h-20 border-b border-slate-800/60 flex items-center justify-between px-10 bg-slate-950/20 backdrop-blur-md">
           <div className="flex items-center space-x-6">
-            <h2 className="text-xl font-bold text-white tracking-tight">{activeTab}</h2>
+            <h2 className="text-xl font-black text-white tracking-tight uppercase">{activeTab}</h2>
             <div className="h-6 w-px bg-slate-800"></div>
             <div className="flex space-x-2">
               <span className="bg-slate-900 border border-slate-800 text-slate-500 px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-tighter">Instance: Local_HPC</span>
-              <span className="bg-bio-accent/10 border border-bio-accent/20 text-bio-accent px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-tighter">Status: Secure</span>
+              <span className="bg-bio-accent/10 border border-bio-accent/20 text-bio-accent px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-tighter shadow-[0_0_10px_-2px_rgba(16,185,129,0.3)]">Status: Secure</span>
             </div>
           </div>
           
@@ -154,7 +155,7 @@ function App() {
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Reproducibility Index</span>
                 <div className="flex items-center space-x-3">
                    <div className="h-1.5 w-32 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full w-full bg-gradient-to-r from-bio-accent to-bio-glow"></div>
+                      <div className="h-full w-full bg-gradient-to-r from-bio-accent to-bio-glow shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                    </div>
                    <span className="text-bio-accent text-xs font-black font-mono tracking-widest">1.0000</span>
                 </div>
@@ -167,6 +168,8 @@ function App() {
 
         {/* Viewport */}
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
+          
+          {/* OBSERVATORY */}
           {activeTab === 'Observatory' && (
             <>
               <div className="grid grid-cols-4 gap-8">
@@ -236,7 +239,7 @@ function App() {
 
                  <GlassCard className="p-8 space-y-6 bg-gradient-to-br from-bio-accent/5 to-transparent border-bio-accent/10">
                     <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Bio-Engineer Demos</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">Select a scenario to pre-load pre-reconciled biological data and view the orchestration logic.</p>
+                    <p className="text-xs text-slate-400 leading-relaxed italic">Select a scenario to pre-load pre-reconciled biological data and view the orchestration logic.</p>
                     <div className="space-y-3">
                        <button onClick={demo_pathogen_surveillance} className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all text-left group">
                           <div>
@@ -258,19 +261,16 @@ function App() {
             </>
           )}
 
+          {/* LABORATORY */}
           {activeTab === 'Laboratory' && (
             <div className="max-w-5xl mx-auto space-y-10">
               <GlassCard className="p-16 flex flex-col items-center justify-center text-center space-y-6 border-2 border-dashed border-slate-800 group hover:border-bio-accent/40 transition-all cursor-pointer relative">
-                <input 
-                  type="file" 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                  onChange={handleFileUpload}
-                />
+                <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileUpload} />
                 <div className="bg-slate-900 p-6 rounded-full text-slate-500 group-hover:text-bio-accent group-hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)] transition-all">
                   <Upload size={48} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white tracking-tight">Ingest Genomic Material</h3>
+                  <h3 className="text-2xl font-black text-white tracking-tight uppercase">Ingest Genomic Material</h3>
                   <p className="text-sm text-slate-400 mt-2 font-medium">Standard FASTA formats supported. WASM engine hashes 2GB/min locally.</p>
                 </div>
               </GlassCard>
@@ -316,10 +316,11 @@ function App() {
             </div>
           )}
 
+          {/* TAXONOMY ROOM */}
           {activeTab === 'Taxonomy Room' && (
              <div className="grid grid-cols-3 gap-10">
                 <GlassCard className="col-span-2">
-                   <div className="px-8 py-6 border-b border-slate-800/60">
+                   <div className="px-8 py-6 border-b border-slate-800/60 bg-slate-900/10">
                       <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Explainable Reconciliation Engine</h3>
                    </div>
                    <div className="p-8 space-y-4">
@@ -367,14 +368,134 @@ function App() {
                          </div>
                       </div>
                    </GlassCard>
-
-                   <button className="w-full flex items-center justify-center space-x-3 bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
-                      <FileCode size={16} />
-                      <span>View CLI Command</span>
-                   </button>
                 </div>
              </div>
           )}
+
+          {/* ORCHESTRATOR */}
+          {activeTab === 'Orchestrator' && (
+            <div className="grid grid-cols-4 gap-8">
+              <GlassCard className="col-span-3 p-0 min-h-[500px] flex flex-col">
+                <div className="px-8 py-5 border-b border-slate-800/60 bg-slate-900/20 flex justify-between items-center">
+                  <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Provenance Transformation DAG</h3>
+                  <span className="text-[9px] font-black text-bio-accent uppercase tracking-widest border border-bio-accent/20 px-2 py-0.5 rounded">Execution Graph</span>
+                </div>
+                <div className="flex-1 p-10 flex items-center justify-center relative overflow-hidden">
+                   {/* Mock DAG Visualization */}
+                   <div className="flex items-center space-x-16 z-10">
+                      {[
+                        { name: 'FASTA_INGEST', hash: 'sha256:b9d7...' },
+                        { name: 'TAXON_MAP', hash: 'sha256:8e7e...' },
+                        { name: 'GAP_FILLER', hash: 'sha256:f23a...' },
+                        { name: 'MATRIX_BUILD', hash: 'sha256:02ea...' }
+                      ].map((step, i, arr) => (
+                        <React.Fragment key={i}>
+                          <div className="flex flex-col items-center group cursor-pointer">
+                            <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-bio-accent group-hover:border-bio-accent transition-all group-hover:shadow-[0_0_20px_-5px_rgba(16,185,129,0.5)]">
+                              <Zap size={20} />
+                            </div>
+                            <div className="mt-3 text-[10px] font-black text-white uppercase tracking-wider">{step.name}</div>
+                            <div className="text-[8px] font-mono text-slate-500">{step.hash}</div>
+                          </div>
+                          {i < arr.length - 1 && <div className="h-px w-16 bg-slate-800 relative after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:border-y-4 after:border-l-4 after:border-y-transparent after:border-l-slate-800"></div>}
+                        </React.Fragment>
+                      ))}
+                   </div>
+                   <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+                </div>
+              </GlassCard>
+              <div className="space-y-6">
+                <GlassCard className="p-6">
+                  <h3 className="text-[10px] font-black text-white uppercase tracking-widest mb-4">Node Inspection</h3>
+                  <div className="space-y-3">
+                    <div className="text-[9px] text-slate-500 font-bold uppercase">Operation ID</div>
+                    <div className="text-xs font-mono text-bio-accent">proc_8e7e348c_v1</div>
+                    <div className="h-px bg-slate-800 my-2"></div>
+                    <div className="text-[9px] text-slate-500 font-bold uppercase">Input Artifacts</div>
+                    <div className="text-[10px] text-slate-400 mono italic">taxon_batch_001.arrow</div>
+                    <div className="text-[10px] text-slate-400 mono italic">ncbi_tax_2026.db</div>
+                  </div>
+                </GlassCard>
+                <button className="w-full bg-bio-accent text-bio-base p-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">
+                  Replay Transformation
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* CONSTRUCTOR */}
+          {activeTab === 'Constructor' && (
+            <div className="space-y-8">
+              <div className="flex justify-between items-end">
+                <div>
+                  <h3 className="text-2xl font-black text-white tracking-tight uppercase">SuperMatrix Assembly</h3>
+                  <p className="text-sm text-slate-400 mt-1 font-medium italic">Sparse chunk map for Zarr-backed out-of-core storage.</p>
+                </div>
+                <div className="flex space-x-4 text-[10px] font-bold uppercase tracking-widest">
+                  <div className="flex items-center space-x-2"><div className="w-3 h-3 bg-indigo-500 rounded-sm"></div><span>Information</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-3 h-3 bg-slate-800 rounded-sm"></div><span>Gap (-)</span></div>
+                </div>
+              </div>
+              
+              <GlassCard className="p-10">
+                <div className="grid grid-cols-12 gap-1 mb-2">
+                   {Array.from({ length: 48 }).map((_, i) => (
+                      <div key={i} className={`aspect-square rounded-[2px] transition-all border border-white/5 hover:border-bio-accent cursor-help ${Math.random() > 0.4 ? 'bg-indigo-600/80 shadow-[inset_0_0_10px_rgba(255,255,255,0.1)]' : 'bg-slate-900'}`}></div>
+                   ))}
+                </div>
+                <div className="mt-8 grid grid-cols-3 gap-8">
+                  <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+                    <div className="text-[9px] font-black text-slate-500 uppercase mb-2 tracking-widest">Allocation Strategy</div>
+                    <div className="text-sm font-bold text-white uppercase">Static Partitioning</div>
+                  </div>
+                  <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+                    <div className="text-[9px] font-black text-slate-500 uppercase mb-2 tracking-widest">Matrix Dimensions</div>
+                    <div className="text-sm font-bold text-white font-mono">102,341 × 1,450,290</div>
+                  </div>
+                  <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+                    <div className="text-[9px] font-black text-slate-500 uppercase mb-2 tracking-widest">Sparse Density</div>
+                    <div className="text-sm font-bold text-bio-glow font-mono tracking-widest">12.4%</div>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          )}
+
+          {/* EXTENSIONS */}
+          {activeTab === 'Extensions' && (
+            <div className="grid grid-cols-3 gap-8">
+              {[
+                { name: 'Outlier Detector', id: 'ext.qc.outliers', cap: 'Quality Control', desc: 'Detects sequence outliers using k-mer frequency distributions.', status: 'TRUSTED' },
+                { name: 'Entropy Scorer', id: 'ext.math.entropy', cap: 'Partition Optimization', desc: 'Calculates Shannon entropy across alignment chunks.', status: 'VERIFIED' },
+                { name: 'Model Selector', id: 'ext.phy.models', cap: 'Evolutionary Inference', desc: 'Heuristic substitution model selection for RAxML-compatible output.', status: 'COMMUNITY' }
+              ].map((ext, i) => (
+                <GlassCard key={i} className="flex flex-col group hover:border-bio-accent/20 transition-all duration-300">
+                  <div className="p-8 space-y-4 flex-1">
+                    <div className="flex justify-between items-start">
+                       <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 group-hover:text-bio-accent transition-colors shadow-inner">
+                          <Puzzle size={24} />
+                       </div>
+                       <span className={`text-[8px] font-black px-2 py-1 rounded border tracking-[0.2em] ${ext.status === 'TRUSTED' ? 'text-bio-accent border-bio-accent/20 bg-bio-accent/5' : 'text-slate-500 border-slate-800'}`}>
+                          {ext.status}
+                       </span>
+                    </div>
+                    <div>
+                       <h3 className="text-lg font-black text-white tracking-tight uppercase">{ext.name}</h3>
+                       <div className="text-[10px] text-bio-accent font-mono tracking-tighter uppercase mt-0.5">{ext.id}</div>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">{ext.desc}</p>
+                    <div className="pt-2">
+                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-950 px-2 py-1 rounded border border-slate-800">{ext.cap}</span>
+                    </div>
+                  </div>
+                  <button className="w-full border-t border-slate-800/60 p-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white hover:bg-bio-accent/5 transition-all">
+                     View Sandbox Audit
+                  </button>
+                </GlassCard>
+              ))}
+            </div>
+          )}
+
         </div>
       </main>
     </div>

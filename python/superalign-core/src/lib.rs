@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+use pyo3::types::{PyBytes, PyList};
 use arrow::record_batch::RecordBatch;
 use arrow::ipc::writer::StreamWriter;
 use arrow::ipc::reader::StreamReader;
@@ -8,6 +8,7 @@ use core_parser::FastaParser;
 use taxonomy_engine::{TaxonomyDb, Reconciler};
 use matrix_engine::{MatrixEngine, WritePlan};
 use provenance_core::ProvenanceManager;
+use plugin_runtime::{PluginRuntime, HeaderNormalizerPlugin};
 use superalign_schemas::{get_current_schema_version};
 
 #[pyclass]
@@ -96,6 +97,49 @@ impl PyProvenanceManager {
     }
 }
 
+#[pyclass]
+struct PyPluginRuntime {
+    inner: PluginRuntime,
+}
+
+#[pymethods]
+impl PyPluginRuntime {
+    #[new]
+    fn new() -> Self {
+        let mut runtime = PluginRuntime::new();
+        // Register built-in plugins
+        runtime.register_plugin(Box::new(HeaderNormalizerPlugin::new()));
+        Self { inner: runtime }
+    }
+
+    fn execute_plugin(
+        &self,
+        py: Python<'_>,
+        plugin_id: String,
+        batch_bytes: Vec<u8>,
+    ) -> PyResult<PyObject> {
+        let cursor = Cursor::new(batch_bytes);
+        let mut reader = StreamReader::try_new(cursor, None)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        
+        let batch = reader.next()
+            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Empty batch"))?
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+
+        let output = self.inner.execute_plugin(&plugin_id, &batch)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+
+        let output_bytes = serialize_batch(&output)?;
+        Ok(PyBytes::new(py, &output_bytes).to_object(py))
+    }
+
+    fn get_signatures(&self) -> PyResult<String> {
+        let sigs = self.inner.get_signatures();
+        serde_json::to_string(&sigs)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+    }
+}
+
 #[pyfunction]
 fn schema_version() -> String {
     get_current_schema_version().to_string()
@@ -174,5 +218,6 @@ fn core(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyProvenanceManager>()?;
     m.add_class::<PyMatrixEngine>()?;
     m.add_class::<PyWritePlan>()?;
+    m.add_class::<PyPluginRuntime>()?;
     Ok(())
 }

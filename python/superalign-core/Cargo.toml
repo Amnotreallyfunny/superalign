@@ -21,3 +21,4 @@ taxonomy-engine = { path = "../../crates/taxonomy-engine" }
 matrix-engine = { path = "../../crates/matrix-engine" }
 provenance-core = { path = "../../crates/provenance-core" }
 superalign-schemas = { path = "../../crates/schemas" }
+plugin-runtime = { path = "../../crates/plugin-runtime" }

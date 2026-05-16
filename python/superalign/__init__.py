@@ -73,3 +73,22 @@ class MatrixEngine:
     
     def write_taxon_locus(self, plan: WritePlan, taxon_id: str, locus_name: str, data: bytes):
         return self._inner.write_taxon_locus(plan._inner, taxon_id, locus_name, data)
+
+class PluginRuntime:
+    def __init__(self):
+        self._inner = core.PyPluginRuntime()
+    
+    def execute_plugin(self, plugin_id: str, table: pa.Table):
+        sink = io.BytesIO()
+        with pa.ipc.new_stream(sink, table.schema) as writer:
+            writer.write_table(table)
+        
+        batch_bytes = sink.getvalue()
+        output_bytes = self._inner.execute_plugin(plugin_id, batch_bytes)
+        
+        output_buf = io.BytesIO(output_bytes)
+        return pa.ipc.open_stream(output_buf).read_all()
+    
+    def get_signatures(self):
+        import json
+        return json.loads(self._inner.get_signatures())

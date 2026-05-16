@@ -1,7 +1,7 @@
-import superalign
-import pyarrow as pa
-import os
 import json
+import os
+
+import superalign
 
 # Create a sample fasta
 fasta_path = "test_sample.fasta"
@@ -11,29 +11,29 @@ with open(fasta_path, "w") as f:
 pm = superalign.ProvenanceManager(pipeline_version="0.1.0")
 
 print("--- Testing FASTA Parsing with Provenance ---")
-fasta_hash = "fake_fasta_hash_123" # In production, compute from file
+fasta_hash = "fake_fasta_hash_123"  # In production, compute from file
 parse_id = pm.record_process(
     operation="FASTA_PARSE",
     inputs=[fasta_hash],
-    outputs=[] # Will fill after parsing
+    outputs=[],  # Will fill after parsing
 )
 
 all_entities = []
-for entities, metadata in superalign.parse_fasta(fasta_path, batch_size=10):
+for entities, _metadata in superalign.parse_fasta(fasta_path, batch_size=10):
     all_entities.append(entities)
-    
+
     print("\n--- Testing Reconciliation ---")
     reconciled, provenance = superalign.reconcile(entities, threshold=0.7)
-    
+
     # Record reconciliation in provenance DAG
     reconcile_id = pm.record_process(
         operation="TAXON_RECONCILE",
-        inputs=[entities.column("entity_uuid")[0].as_py()], # simplified
+        inputs=[entities.column("entity_uuid")[0].as_py()],  # simplified
         outputs=[reconciled.column("ontology_id")[0].as_py()],
         parent_uuid=parse_id,
-        plugin="taxonomy-engine-v1"
+        plugin="taxonomy-engine-v1",
     )
-    
+
     print(f"Reconciled {len(entities)} taxa. Reconcile Process ID: {reconcile_id}")
 
 print("\n--- Provenance Report ---")

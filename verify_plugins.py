@@ -1,6 +1,7 @@
-import superalign
-import pyarrow as pa
 import json
+
+import pyarrow as pa
+import superalign
 
 print("--- Testing Plugin Runtime ---")
 runtime = superalign.PluginRuntime()
@@ -10,10 +11,7 @@ sigs = runtime.get_signatures()
 print(f"Available Plugins: {json.dumps(sigs, indent=2)}")
 
 # Create dummy input data
-data = [
-    {"raw_label": "Homo sapiens"},
-    {"raw_label": "Mus musculus"}
-]
+data = [{"raw_label": "Homo sapiens"}, {"raw_label": "Mus musculus"}]
 table = pa.Table.from_pylist(data)
 
 print("\n--- Executing Plugin: builtin.header_normalizer ---")

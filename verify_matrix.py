@@ -1,6 +1,8 @@
-import superalign
 import os
 import shutil
+
+import superalign
+import zarr
 
 store_path = "test_matrix.zarr"
 if os.path.exists(store_path):
@@ -22,10 +24,7 @@ matrix.write_chunk(taxon_index=1, start_pos=5, data=b"GGGGGG")
 print("Data written to Zarr.")
 
 # In production, we'd use zarr-python to read it back
-import zarr
-import numpy as np
-
-z = zarr.open(store_path, mode='r')
+z = zarr.open(store_path, mode="r")
 # np.array(z) should work for Zarr arrays
 arr = z[:]
 print(f"\nMatrix Shape: {arr.shape}")

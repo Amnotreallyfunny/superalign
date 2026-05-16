@@ -1,7 +1,9 @@
-import superalign
+import json
 import os
 import shutil
-import json
+
+import superalign
+import zarr
 
 store_path = "dist_matrix.zarr"
 if os.path.exists(store_path):
@@ -28,13 +30,12 @@ matrix.write_taxon_locus(plan, "Human", "GAPDH", b"GGGGGGGGGG")
 
 # Worker 2: Mouse sequences
 matrix.write_taxon_locus(plan, "Mouse", "BRCA1", b"TTTTTTTTTTTTTTT")
-matrix.write_taxon_locus(plan, "Mouse", "COX1",  b"CCCCCCCCCCCCCCCCCCCC")
+matrix.write_taxon_locus(plan, "Mouse", "COX1", b"CCCCCCCCCCCCCCCCCCCC")
 
 print("Distributed data written to Zarr.")
 
 # Verification read
-import zarr
-z = zarr.open(store_path, mode='r')
+z = zarr.open(store_path, mode="r")
 arr = z[:]
 print("\nFinal Matrix Content:")
 print(arr)

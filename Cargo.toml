@@ -8,6 +8,7 @@ members = [
     "crates/matrix-engine",
     "crates/schemas",
     "crates/plugin-runtime",
+    "crates/wasm-core",
     "python/superalign-core", # The PyO3 binding crate
 ]
 

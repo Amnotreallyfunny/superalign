@@ -1,0 +1,13 @@
+SuperAlign
+Copyright (c) 2026 SuperAlign Contributors
+
+This product includes software developed by the SuperAlign Team
+(https://github.com/superalign/superalign).
+
+This product heavily utilizes the following open-source components:
+
+* Apache Arrow (Apache 2.0) - https://arrow.apache.org/
+* DuckDB (MIT) - https://duckdb.org/
+* Zarr (MIT/Apache 2.0) - https://zarr.dev/
+* PyO3 (Apache 2.0) - https://pyo3.rs/
+* Needletail (MIT) - https://github.com/onecodex/needletail

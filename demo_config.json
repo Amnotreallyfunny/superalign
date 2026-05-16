@@ -1,0 +1,8 @@
+{
+    "DEMO_PATH": "/Users/sanjanaasuresh/superalign/data/demo",
+    "FASTA_FILE": "demo_fungi_10k.fasta",
+    "DUCKDB_PATH": "/Users/sanjanaasuresh/superalign/infra/db/superalign.db",
+    "THRESHOLD": 0.85,
+    "ORCHESTRATOR_URL": "http://localhost:5173",
+    "WASM_ENGINE_ENABLED": true
+}

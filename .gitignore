@@ -1,0 +1,22 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# SuperAlign Data
+*.zarr/
+*.dat
+*.parquet
+test_matrix.zarr/
+
+# OS
+.DS_Store

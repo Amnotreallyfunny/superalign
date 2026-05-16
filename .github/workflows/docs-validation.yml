@@ -24,7 +24,7 @@ jobs:
       
       - name: Build and Install SuperAlign
         run: |
-          maturin develop
+          pip install .
         env:
           PYO3_PYTHON: python3
 

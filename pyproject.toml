@@ -1,0 +1,48 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "superalign"
+version = "0.1.0"
+description = "Production-grade computational biology infrastructure for phylogenomics"
+authors = [{ name = "SuperAlign Team" }]
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.0",
+    "duckdb>=0.10.0",
+    "zarr>=2.16.0",
+    "pyarrow>=15.0.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+
+[project.scripts]
+superalign = "superalign.cli:main"
+
+[tool.maturin]
+python-source = "python"
+module-name = "superalign.core"
+features = ["pyo3/extension-module"]
+manifest-path = "python/superalign-core/Cargo.toml"
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+ignore_missing_imports = true

@@ -1,0 +1,22 @@
+[package]
+name = "superalign-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "superalign_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+arrow = { workspace = true }
+# Internal crates
+core-parser = { path = "../../crates/core-parser" }
+taxonomy-engine = { path = "../../crates/taxonomy-engine" }
+matrix-engine = { path = "../../crates/matrix-engine" }
+provenance-core = { path = "../../crates/provenance-core" }
+superalign-schemas = { path = "../../crates/schemas" }

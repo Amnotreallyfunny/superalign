@@ -65,7 +65,7 @@ jobs:
 
       - name: Install maturin and dependencies
         run: |
-          pip install maturin ruff mypy pytest pyarrow pandas
+          pip install maturin ruff mypy pytest pyarrow pandas psutil
       
       - name: Lint and Format
         run: |
@@ -80,3 +80,8 @@ jobs:
 
       - name: Run Pytest
         run: pytest
+
+      - name: National Lab Audit
+        run: |
+          export PYTHONPATH=$PYTHONPATH:.
+          python tests/scientific_national_lab.py

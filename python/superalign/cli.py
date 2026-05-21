@@ -1,11 +1,11 @@
+
 import click
 import pyarrow as pa
-import superalign
-import json
-import os
 from rich.console import Console
-from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+
+import superalign
 
 console = Console()
 
@@ -19,7 +19,9 @@ def main() -> None:
 @click.option('--batch-size', default=1024, help='Number of sequences per batch')
 def ingest(fasta_path: str, batch_size: int) -> None:
     """Ingest and hash genomic sequences from a FASTA file."""
-    console.print(f"[bold blue]SUPERALIGN[/bold blue] | Starting Ingestion of {fasta_path}...")
+    console.print(
+        f"[bold blue]SUPERALIGN[/bold blue] | Starting Ingestion of {fasta_path}..."
+    )
     
     table = Table(title="Sequence Metadata Extract")
     table.add_column("UUID", style="cyan")
@@ -46,14 +48,19 @@ def ingest(fasta_path: str, batch_size: int) -> None:
                 )
     
     console.print(table)
-    console.print(f"[bold green]SUCCESS[/bold green] | Processed {len(joined)} sequences locally.")
+    console.print(
+        f"[bold green]SUCCESS[/bold green] | Processed {len(joined)} sequences locally."
+    )
 
 @main.command()
 @click.argument('manifest_path', type=click.Path(exists=True))
 @click.option('--threshold', default=0.85, help='Fuzzy match threshold')
 def reconcile(manifest_path: str, threshold: float) -> None:
     """Reconcile sequence headers against taxonomic ontologies."""
-    console.print(f"[bold blue]SUPERALIGN[/bold blue] | Reconciling against NCBI Ontology (Threshold: {threshold})...")
+    console.print(
+        f"[bold blue]SUPERALIGN[/bold blue] | "
+        f"Reconciling against NCBI Ontology (Threshold: {threshold})..."
+    )
     
     # In a real CLI we would load the parquet manifest
     # For this demo, we'll simulate the workflow

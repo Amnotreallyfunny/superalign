@@ -1,0 +1,19 @@
+[package]
+name = "qc-engine"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "qc_engine"
+path = "src/lib.rs"
+
+[dependencies]
+arrow = { version = "53.0" }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rayon = "1.10"
+ndarray = "0.15"
+superalign-schemas = { path = "../schemas" }

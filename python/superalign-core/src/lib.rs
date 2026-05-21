@@ -46,10 +46,12 @@ impl PyMatrixEngine {
         }
     }
 
-    fn plan_matrix(&self, taxa: Vec<String>, loci: Vec<(String, u64)>) -> PyWritePlan {
-        PyWritePlan {
-            inner: self.inner.plan_matrix(taxa, loci),
-        }
+    fn plan_matrix(&mut self, index_db_path: String, taxa: Vec<String>, loci: Vec<(String, u64)>) -> PyResult<PyWritePlan> {
+        let plan = self.inner.plan_matrix(&index_db_path, taxa, loci)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(PyWritePlan {
+            inner: plan,
+        })
     }
 
     fn initialize_from_plan(&self, plan: PyWritePlan) -> PyResult<()> {
@@ -57,7 +59,7 @@ impl PyMatrixEngine {
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     }
 
-    fn write_taxon_locus(&self, plan: PyWritePlan, taxon_id: String, locus_name: String, data: Vec<u8>) -> PyResult<()> {
+    fn write_taxon_locus(&mut self, plan: PyWritePlan, taxon_id: String, locus_name: String, data: Vec<u8>) -> PyResult<()> {
         self.inner.write_taxon_locus(&plan.inner, &taxon_id, &locus_name, &data)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     }

@@ -95,8 +95,10 @@ class MatrixEngine:
     def __init__(self, store_path: str) -> None:
         self._inner = core.PyMatrixEngine(store_path)
 
-    def plan_matrix(self, taxa: list[str], loci: list[tuple[str, int]]) -> WritePlan:
-        return WritePlan(self._inner.plan_matrix(taxa, loci))
+    def plan_matrix(
+        self, index_db_path: str, taxa: list[str], loci: list[tuple[str, int]]
+    ) -> WritePlan:
+        return WritePlan(self._inner.plan_matrix(index_db_path, taxa, loci))
 
     def initialize_from_plan(self, plan: WritePlan) -> None:
         return self._inner.initialize_from_plan(plan._inner)  # type: ignore

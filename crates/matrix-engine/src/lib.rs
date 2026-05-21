@@ -6,7 +6,7 @@ use zarrs::{
 };
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
-use duckdb::{params, Connection};
+use duckdb::{params, Connection, Config, AccessMode};
 use lru::LruCache;
 use std::num::NonZeroUsize;
 
@@ -32,16 +32,22 @@ pub struct PersistentIndex {
 }
 
 impl PersistentIndex {
-    pub fn new(path: &str) -> Result<Self> {
-        let conn = Connection::open(path)?;
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS taxon_index (
-                taxon_id TEXT PRIMARY KEY,
-                row_idx BIGINT NOT NULL
-            )",
-            [],
-        )?;
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_taxon_id ON taxon_index(taxon_id)", [])?;
+    pub fn new(path: &str, read_only: bool) -> Result<Self> {
+        let config = Config::default()
+            .access_mode(if read_only { AccessMode::ReadOnly } else { AccessMode::ReadWrite })?;
+        
+        let conn = Connection::open_with_flags(path, config)?;
+        
+        if !read_only {
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS taxon_index (
+                    taxon_id TEXT PRIMARY KEY,
+                    row_idx BIGINT NOT NULL
+                )",
+                [],
+            )?;
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_taxon_id ON taxon_index(taxon_id)", [])?;
+        }
         Ok(Self { conn })
     }
 
@@ -86,7 +92,7 @@ impl MatrixEngine {
         taxa_list: Vec<String>,
         loci: Vec<(String, u64)>,
     ) -> Result<WritePlan> {
-        let index = PersistentIndex::new(index_db_path)?;
+        let index = PersistentIndex::new(index_db_path, false)?;
         
         for (i, taxon) in taxa_list.into_iter().enumerate() {
             index.insert_taxon(&taxon, i as u64)?;
@@ -113,7 +119,11 @@ impl MatrixEngine {
 
     pub fn initialize_from_plan(&self, plan: &WritePlan) -> Result<()> {
         let store = Arc::new(FilesystemStore::new(&self.store_path)?);
-        let chunk_shape = vec![plan.total_taxa.min(100), 10000.min(plan.total_length)];
+        
+        // Parallel-Safe Chunking Strategy:
+        // Set row chunk size to 1. This ensures each taxon has its own set of chunks,
+        // allowing multiple workers to write different taxa simultaneously without locking.
+        let chunk_shape = vec![1, 10000.min(plan.total_length)];
         
         let array = ArrayBuilder::new(
             vec![plan.total_taxa, plan.total_length],
@@ -138,8 +148,8 @@ impl MatrixEngine {
         let row_index = if let Some(idx) = self.index_cache.get(taxon_id) {
             *idx
         } else {
-            // 2. Persistent Lookup (O(1) seek)
-            let index = PersistentIndex::new(&plan.index_db_path)?;
+            // 2. Persistent Lookup (O(1) seek) - READ ONLY for worker concurrency
+            let index = PersistentIndex::new(&plan.index_db_path, true)?;
             let idx = index.get_row_idx(taxon_id)?
                 .with_context(|| format!("Taxon {} not in persistent index", taxon_id))?;
             self.index_cache.put(taxon_id.to_string(), idx);

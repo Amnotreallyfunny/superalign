@@ -21,6 +21,7 @@ chrono = "0.4"
 superalign-schemas = { path = "../schemas" }
 tracing = "0.1"
 rayon = "1.10"
+regex = "1.10"
 
 [dev-dependencies]
 proptest = "1.4"

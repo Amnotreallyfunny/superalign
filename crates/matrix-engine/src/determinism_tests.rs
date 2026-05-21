@@ -14,6 +14,9 @@ mod determinism_tests {
         for entry in entries {
             if entry.path().is_file() {
                 hasher.update(fs::read(entry.path()).unwrap());
+            } else if entry.path().is_dir() {
+                // Recursive hash for Zarr directories
+                hasher.update(hash_directory(&entry.path()));
             }
         }
         hex::encode(hasher.finalize())
@@ -24,25 +27,29 @@ mod determinism_tests {
         let taxa = vec!["t1".into(), "t2".into()];
         let loci = vec![("g1".into(), 10), ("g2".into(), 10)];
         
-        let dir1 = tempdir()?;
-        let engine1 = MatrixEngine::new(dir1.path().to_str().unwrap());
-        let plan1 = engine1.plan_matrix(taxa.clone(), loci.clone());
+        let root1 = tempdir()?;
+        let store1 = root1.path().join("m.zarr");
+        let index1 = root1.path().join("i.db");
+        let mut engine1 = MatrixEngine::new(store1.to_str().unwrap());
+        let plan1 = engine1.plan_matrix(index1.to_str().unwrap(), taxa.clone(), loci.clone())?;
         engine1.initialize_from_plan(&plan1)?;
         
         // Write order: t1 then t2
         engine1.write_taxon_locus(&plan1, "t1", "g1", b"AAAAAAAAAA")?;
         engine1.write_taxon_locus(&plan1, "t2", "g2", b"GGGGGGGGGG")?;
-        let hash1 = hash_directory(dir1.path());
+        let hash1 = hash_directory(&store1);
 
-        let dir2 = tempdir()?;
-        let engine2 = MatrixEngine::new(dir2.path().to_str().unwrap());
-        let plan2 = engine2.plan_matrix(taxa, loci);
+        let root2 = tempdir()?;
+        let store2 = root2.path().join("m.zarr");
+        let index2 = root2.path().join("i.db");
+        let mut engine2 = MatrixEngine::new(store2.to_str().unwrap());
+        let plan2 = engine2.plan_matrix(index2.to_str().unwrap(), taxa, loci)?;
         engine2.initialize_from_plan(&plan2)?;
         
         // Write order: t2 then t1 (reversed)
         engine2.write_taxon_locus(&plan2, "t2", "g2", b"GGGGGGGGGG")?;
         engine2.write_taxon_locus(&plan2, "t1", "g1", b"AAAAAAAAAA")?;
-        let hash2 = hash_directory(dir2.path());
+        let hash2 = hash_directory(&store2);
 
         // Invariant: Final Zarr state must be identical regardless of write order
         assert_eq!(hash1, hash2, "Matrix state diverged due to write ordering");

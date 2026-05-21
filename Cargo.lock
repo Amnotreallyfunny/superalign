@@ -1493,7 +1493,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arrow 53.4.1",
+ "duckdb",
  "hex",
+ "lru",
  "ndarray 0.15.6",
  "rayon",
  "serde",
@@ -2548,6 +2550,7 @@ dependencies = [
  "duckdb",
  "proptest",
  "rayon",
+ "regex",
  "serde",
  "serde_json",
  "strsim",

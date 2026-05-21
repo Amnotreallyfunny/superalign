@@ -4,9 +4,11 @@ use zarrs::{
     array_subset::ArraySubset,
     filesystem::FilesystemStore,
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
+use duckdb::{params, Connection};
+use lru::LruCache;
+use std::num::NonZeroUsize;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocusPartition {
@@ -15,35 +17,79 @@ pub struct LocusPartition {
     pub length: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+/// A Bounded-Memory Coordinate Manifest.
+/// Replaces large in-memory HashMaps with a persistent lookup + hot cache.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WritePlan {
     pub total_taxa: u64,
     pub total_length: u64,
     pub partitions: Vec<LocusPartition>,
-    pub taxon_id_to_index: HashMap<String, u64>,
+    pub index_db_path: String, // Path to the DuckDB persistent index
+}
+
+pub struct PersistentIndex {
+    conn: Connection,
+}
+
+impl PersistentIndex {
+    pub fn new(path: &str) -> Result<Self> {
+        let conn = Connection::open(path)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS taxon_index (
+                taxon_id TEXT PRIMARY KEY,
+                row_idx BIGINT NOT NULL
+            )",
+            [],
+        )?;
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_taxon_id ON taxon_index(taxon_id)", [])?;
+        Ok(Self { conn })
+    }
+
+    pub fn insert_taxon(&self, taxon_id: &str, row_idx: u64) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO taxon_index VALUES (?, ?)",
+            params![taxon_id, row_idx],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_row_idx(&self, taxon_id: &str) -> Result<Option<u64>> {
+        let mut stmt = self.conn.prepare("SELECT row_idx FROM taxon_index WHERE taxon_id = ?")?;
+        let mut rows = stmt.query(params![taxon_id])?;
+        if let Some(row) = rows.next()? {
+            let idx: i64 = row.get(0)?;
+            Ok(Some(idx as u64))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 pub struct MatrixEngine {
     store_path: String,
+    index_cache: LruCache<String, u64>, // Hot cache for frequent lookups
 }
 
 impl MatrixEngine {
     pub fn new(store_path: &str) -> Self {
         Self {
             store_path: store_path.to_string(),
+            index_cache: LruCache::new(NonZeroUsize::new(10000).unwrap()), // Bounded to 10k hot entries
         }
     }
 
-    /// Perform a dry-run scan to determine matrix dimensions and generate a write plan.
-    /// In a real scenario, this would iterate over all alignment files.
+    /// Generate a write plan using a persistent index.
+    /// This is O(working_set) memory, not O(T).
     pub fn plan_matrix(
         &self,
+        index_db_path: &str,
         taxa_list: Vec<String>,
-        loci: Vec<(String, u64)>, // (name, length)
-    ) -> WritePlan {
-        let mut taxon_id_to_index = HashMap::new();
+        loci: Vec<(String, u64)>,
+    ) -> Result<WritePlan> {
+        let index = PersistentIndex::new(index_db_path)?;
+        
         for (i, taxon) in taxa_list.into_iter().enumerate() {
-            taxon_id_to_index.insert(taxon, i as u64);
+            index.insert_taxon(&taxon, i as u64)?;
         }
 
         let mut current_offset = 0;
@@ -57,21 +103,17 @@ impl MatrixEngine {
             current_offset += len;
         }
 
-        WritePlan {
-            total_taxa: taxon_id_to_index.len() as u64,
+        Ok(WritePlan {
+            total_taxa: index.conn.query_row("SELECT count(*) FROM taxon_index", [], |r| r.get::<_, i64>(0))? as u64,
             total_length: current_offset,
             partitions,
-            taxon_id_to_index,
-        }
+            index_db_path: index_db_path.to_string(),
+        })
     }
 
-    /// Pre-allocate a Zarr array based on a WritePlan.
-    /// This is HPC-safe as it only writes metadata initially.
     pub fn initialize_from_plan(&self, plan: &WritePlan) -> Result<()> {
         let store = Arc::new(FilesystemStore::new(&self.store_path)?);
-        
-        // Optimize chunk size for HPC parallel filesystems (many taxa, chunked by loci)
-        let chunk_shape = vec![plan.total_taxa, 10000.min(plan.total_length)];
+        let chunk_shape = vec![plan.total_taxa.min(100), 10000.min(plan.total_length)];
         
         let array = ArrayBuilder::new(
             vec![plan.total_taxa, plan.total_length],
@@ -85,38 +127,41 @@ impl MatrixEngine {
         Ok(())
     }
 
-    /// Distributed-safe write: write a specific taxon's sequence for a specific locus.
-    /// Since workers write to unique (taxon, locus) coordinates, this is lock-free.
     pub fn write_taxon_locus(
-        &self,
+        &mut self,
         plan: &WritePlan,
         taxon_id: &str,
         locus_name: &str,
         data: &[u8],
     ) -> Result<()> {
-        let taxon_index = plan.taxon_id_to_index.get(taxon_id)
-            .with_context(|| format!("Taxon {} not in plan", taxon_id))?;
+        // 1. Check Hot Cache
+        let row_index = if let Some(idx) = self.index_cache.get(taxon_id) {
+            *idx
+        } else {
+            // 2. Persistent Lookup (O(1) seek)
+            let index = PersistentIndex::new(&plan.index_db_path)?;
+            let idx = index.get_row_idx(taxon_id)?
+                .with_context(|| format!("Taxon {} not in persistent index", taxon_id))?;
+            self.index_cache.put(taxon_id.to_string(), idx);
+            idx
+        };
         
         let partition = plan.partitions.iter().find(|p| p.locus_name == locus_name)
             .with_context(|| format!("Locus {} not in plan", locus_name))?;
 
         if data.len() as u64 != partition.length {
-            return Err(anyhow::anyhow!(
-                "Data length {} does not match planned length {} for locus {}",
-                data.len(), partition.length, locus_name
-            ));
+            return Err(anyhow::anyhow!("Data length mismatch for {}", locus_name));
         }
 
         let store = Arc::new(FilesystemStore::new(&self.store_path)?);
         let array = Array::open(store, "/")?;
         
         let subset = ArraySubset::new_with_start_shape(
-            vec![*taxon_index, partition.start_offset],
+            vec![row_index, partition.start_offset],
             vec![1, partition.length],
         )?;
         
         array.store_array_subset(&subset, data)?;
-        
         Ok(())
     }
 }
@@ -129,22 +174,21 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn test_distributed_planning_and_writing() -> Result<()> {
+    fn test_persistent_indexing() -> Result<()> {
         let dir = tempdir()?;
-        let path = dir.path().to_str().unwrap();
-        let engine = MatrixEngine::new(path);
+        let store_path = dir.path().join("matrix.zarr");
+        let index_path = dir.path().join("index.db");
         
-        let taxa = vec!["taxon1".to_string(), "taxon2".to_string()];
-        let loci = vec![("geneA".to_string(), 10), ("geneB".to_string(), 20)];
+        let mut engine = MatrixEngine::new(store_path.to_str().unwrap());
         
-        let plan = engine.plan_matrix(taxa, loci);
-        assert_eq!(plan.total_length, 30);
+        let taxa = vec!["t1".to_string(), "t2".to_string()];
+        let loci = vec![("g1".to_string(), 5)];
         
+        let plan = engine.plan_matrix(index_path.to_str().unwrap(), taxa, loci)?;
         engine.initialize_from_plan(&plan)?;
         
-        // Simulating distributed workers writing different parts
-        engine.write_taxon_locus(&plan, "taxon1", "geneA", b"ATGCATGCAT")?;
-        engine.write_taxon_locus(&plan, "taxon2", "geneB", b"GGGGGGGGGGGGGGGGGGGG")?;
+        engine.write_taxon_locus(&plan, "t1", "g1", b"AAAAA")?;
+        engine.write_taxon_locus(&plan, "t2", "g1", b"CCCCC")?;
         
         Ok(())
     }

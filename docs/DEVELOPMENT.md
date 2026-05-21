@@ -17,15 +17,28 @@ This document outlines the monorepo architecture, coding standards, and interope
 
 ## 🦀 Rust Development
 
-We prioritize **safety**, **determinism**, and **zero-copy**.
+We prioritize **safety**, **determinism**, and **bounded-memory scale**.
+
+### Tiered Memory Model
+SuperAlign is designed for RefSeq-scale runs (10M+ taxa). To maintain a bounded memory footprint:
+1. **Persistent Index (DuckDB)**: Global taxon and locus mappings are stored on-disk.
+2. **Hot Cache (LRU)**: Frequently accessed coordinate mappings are cached in memory (default 10k entries).
+3. **Zarr Out-of-Core**: Sequence data is written directly to chunked Zarr storage without loading the entire matrix into RAM.
+
+### Hierarchical Reconciliation
+The `taxonomy-engine` follows a strict deterministic priority hierarchy:
+1. **Biological IDs**: Recursive Regex extraction for NCBI TaxIDs (`taxid:9606`).
+2. **Accession Grounding**: Mapping GenBank/RefSeq accessions to canonical TaxIDs.
+3. **Exact Synonym**: Direct matching against the DuckDB ontology table.
+4. **Fuzzy Fallback**: Jaro-Winkler similarity used ONLY as assistive fallback.
+
+### Ambiguity Management
+Conflicting matches (equal scores/ranks) MUST NOT be automatically resolved. They are assigned the `ISOLATED_PENDING_REVIEW` state and isolated from downstream matrix assembly.
 
 ### Coding Standards
 - **Errors**: Use `anyhow` for applications and `thiserror` for library crates.
-- **Async**: Use `tokio` where necessary, but prioritize synchronous code for CPU-bound sequence processing to avoid overhead.
-- **Determinism**: Never use non-deterministic sources (e.g., `SystemTime::now()` or random seeds) without logging them to the provenance DAG.
-
-### Schema Contracts
-All data movement between crates and languages MUST use the Arrow RecordBatch schemas defined in `crates/schemas`. Direct JSON or raw string exchange is prohibited for sequence data.
+- **Async**: Use `tokio` for I/O and orchestration, but prioritize synchronous code for CPU-bound sequence processing.
+- **Determinism**: Every transformation rationale is logged. Tie-breaking rules are policy-based and immutable.
 
 ## 🐍 Python/Rust Interop (PyO3)
 

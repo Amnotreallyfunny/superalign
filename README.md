@@ -3,27 +3,27 @@
 [![CI](https://github.com/Amnotreallyfunny/superalign/actions/workflows/ci.yml/badge.svg)](https://github.com/Amnotreallyfunny/superalign/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**SuperAlign** is a production-grade computational biology infrastructure platform for scalable phylogenomics. It provides a high-performance orchestration layer for sequence preprocessing, taxon reconciliation, and out-of-core sparse matrix construction.
+**SuperAlign** is a production-grade **Deterministic Phylogenomics Infrastructure** platform. It provides a high-performance orchestration layer for sequence preprocessing, hierarchical taxon reconciliation, and bounded-memory sparse matrix construction.
 
 ## 🔬 Core Vision
 SuperAlign bridges the gap between raw genomic data and tree-building engines. It moves beyond ad-hoc scripts by enforcing:
+- **Biological Identity**: Prioritizing TaxIDs and Accession grounding over fragile string similarity.
 - **Bit-for-bit Reproducibility**: Identical outputs for identical inputs across environments.
-- **Immutable Provenance**: Automated DAG-based event logging of every transformation.
-- **Scalable Out-of-Core Processing**: Handle 100,000+ genomes on hardware with minimal RAM using Zarr and DuckDB.
-- **WASM Preprocessing**: Local-first data cleaning entirely in the browser.
+- **Immutable Provenance**: Cryptographic DAG-based event logging of every transformation rationale.
+- **Bounded-Memory Processing**: Indexing 10M+ taxa on hardware with minimal RAM using a tiered persistent index strategy.
 
 ---
 
 ## 🏗 Architecture
-SuperAlign uses a **Polyglot Core** strategy:
-- **Rust (Backend)**: Parsing, string-distance matching, and Zarr I/O.
+SuperAlign uses a **Polyglot Core** strategy with a tiered memory model:
+- **Rust (Backend)**: Hierarchical reconciliation, persistent indexing (DuckDB), and Zarr I/O.
 - **Python (Orchestration)**: API, workflow logic, and data science integration.
-- **Apache Arrow**: The strict, zero-copy data contract between all layers.
+- **Hot Cache (LRU)**: Bounded-memory lookups for high-throughput stream processing.
 
 ```text
-[FASTA] -> [Rust Parser] -> [Arrow RecordBatch] -> [Taxonomy Engine (DuckDB)]
-                                    |
-                                    v
+[FASTA] -> [Metadata Extractor] -> [TaxID/Accession Grounding] -> [Persistent Index (DuckDB)]
+                                             |
+                                             v
 [Zarr Matrix] <- [Matrix Engine] <- [Provenance Core (DAG Tracing)]
 ```
 
@@ -43,10 +43,10 @@ import pyarrow as pa
 
 # 1. Streaming Parse
 for entities, metadata in superalign.parse_fasta("data/samples.fasta"):
-    # 2. Reconcile against Taxonomy
+    # 2. Hierarchical Reconcile
     reconciled, provenance = superalign.reconcile(entities)
     
-    # 3. Assemble SuperMatrix (Out-of-core)
+    # 3. Assemble SuperMatrix (Bounded-memory)
     matrix = superalign.MatrixEngine("output/supermatrix.zarr")
     # ... assembly logic ...
 ```
@@ -57,12 +57,12 @@ for entities, metadata in superalign.parse_fasta("data/samples.fasta"):
 
 | Feature | Status | Description |
 | :--- | :--- | :--- |
-| **Streaming Parser** | ✅ Production | Multi-GB FASTA support with SHA-256 hashing. |
-| **Taxon Reconciler** | ✅ Production | DuckDB-backed fuzzy matching with Jaro-Winkler. |
+| **Hierarchical Reconciler** | ✅ Production | TaxID-first resolution with deterministic tie-breaking. |
+| **Persistent Indexer** | ✅ Production | DuckDB-backed O(log N) lookups for 10M+ taxa. |
 | **Matrix Engine** | ✅ Production | Zarr-backed out-of-core sparse matrix builder. |
-| **Provenance Core** | ✅ Production | Parquet-based immutable event logging. |
+| **Provenance Core** | ✅ Production | Immutable event logging with explanation tracking. |
+| **Ambiguity Queue** | 🚧 Beta | Scientific isolation of conflicting records for review. |
 | **WASM Core** | 🚧 Beta | Browser-native parsing and reconciliation. |
-| **Plugin Runtime** | 🚧 Alpha | Sandboxed pure-function extension system. |
 
 ---
 

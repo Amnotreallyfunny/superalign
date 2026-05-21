@@ -108,12 +108,13 @@ These are "sanity checks" to catch non-computational logic failures.
 
 ## 8. Failure & Corruption Simulation (Chaos Engineering)
 
-We proactively simulate failures to test the **Resumability Engine**.
+We proactively simulate failures to test the **Resumability Engine** and **Deterministic Policy Engine**.
 
 1.  **Truncated Ingestion:** Terminate FASTA parsing at 50.5%.
 2.  **Duplicate UUID Injection:** Inject a duplicate ID into a batch to test collision handling.
-3.  **Ontology Mismatch:** Attempt to reconcile against a v2 manifest using a v1 taxonomy database.
-4.  **Zarr Chunk Corruption:** Manually flip bits in a `.zarr` chunk file. SuperAlign must detect the checksum mismatch and refuse to export the supermatrix.
+3.  **Conflict Injection:** Ingest a "Poisoned FASTA" containing intentional naming collisions and synonym loops to verify that the `Ambiguity Management` layer correctly flags them for review.
+4.  **Ontology Mismatch:** Attempt to reconcile against a v2 manifest using a v1 taxonomy database.
+5.  **Zarr Chunk Corruption:** Manually flip bits in a `.zarr` chunk file. SuperAlign must detect the checksum mismatch and refuse to export the supermatrix.
 
 ---
 
